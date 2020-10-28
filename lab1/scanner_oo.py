@@ -39,12 +39,11 @@ t_NEQ = "!="
 t_EQ = "=="
 
 def t_FLOATNUM(t):
-    # 10.1 9. 
-    r'-?( ( (0 | ([1-9]\d*) )\.\d*) | (\.\d+) )'
+    r'( (0 | ([1-9]\d*) )\.\d*) | (\.\d+)'
     return t
 
 def t_INTNUM(t):
-    r'-?([1-9]\d*)|0'
+    r'([1-9]\d*)|0'
     t.value = int(t.value)
     return t
 
