@@ -5,8 +5,8 @@ literals = r"+-/*=<>()[]{}:',;"
 reserved = {
     "if": "IF",
     "else": "ELSE",
-    "then": "THEN",
     "while": "WHILE",
+    "for": "FOR",
     "break": "BREAK",
     "continue": "CONTINUE",
     "return": "RETURN",

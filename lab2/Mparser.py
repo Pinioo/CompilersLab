@@ -14,19 +14,23 @@ precedence = (
    ("left", '\'')
 )
 
-
 def p_start(p):
-    """start : expr ';'
-             | block 
-             | start expr ';'
-             | start block"""
-    print('start')
+    """start : struct
+             | start struct
+             | '{' start '}'
+             | start '{' start '}'"""
+
+def p_struct(p):
+    """struct : expr ';'
+              | cond_expr
+              | instruction"""
 
 ######################################
 
-def p_expr_num(p):
+def p_expr_const(p):
     """expr : INTNUM
-            | FLOATNUM"""
+            | FLOATNUM
+            | STRING"""
     
 def p_expr_id(p):
     """expr : ID"""
@@ -45,7 +49,7 @@ def p_expr_transpose(p):
 #######################################
 
 def p_array_interior(p):
-    """array_interior : expr ',' array_interior
+    """array_interior : array_interior ',' expr
                       | expr"""
     
 def p_expr_array(p):
@@ -105,30 +109,38 @@ def p_expr_logic(p):
 
 #######################################
 
-def p_block(p):
-    """block : expr ';'
-             | '{' '}'
-             | '{' start '}'
-             | while_block
-             | if_block"""
-    print('block')
+def p_cond_expr(p):
+    """cond_expr : cond_if
+                 | cond_while
+                 | cond_for"""
 
-def p_while_block(p):
-    """while_block : WHILE '(' expr ')' block"""
-    print('while')
+def p_cond_block(p):
+    """cond_block : struct
+                  | '{' start '}'"""
 
-def p_if_block(p):
-    """if_block : IF '(' expr ')' block"""
+def p_cond_if(p):
+    """cond_if : IF '(' expr ')' cond_block
+               | cond_if ELSE cond_block"""
 
-def p_else_block(p):
-    """else_block : ELSE block"""
+def p_cond_while(p):
+    """cond_while : WHILE '(' expr ')' cond_block"""
+
+def p_cond_for(p):
+    """cond_for : FOR ID '=' expr ':' expr cond_block"""
+
+#######################################
+
+def p_instruction(p):
+    """instruction : BREAK ';'
+                   | CONTINUE ';'
+                   | RETURN expr ';'
+                   | PRINT array_interior ';'"""
 
 #######################################
 
 def p_error(p):
     if p:
         print("Syntax error at line {0}: LexToken({1}, '{2}')".format(p.lineno, p.type, p.value))
-        # print("Syntax error at line {0}, column {1}: LexToken({2}, '{3}')".format(p.lineno, scanner.find_tok_column(p), p.type, p.value))
     else:
         print("Unexpected end of input")
 
