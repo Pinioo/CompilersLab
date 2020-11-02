@@ -27,6 +27,19 @@ def p_struct(p):
 
 ######################################
 
+def p_loop_start(p):
+    """loop_start : loop_struct
+                  | loop_start loop_struct
+                  | '{' loop_start '}'
+                  | loop_start '{' loop_start '}'"""
+
+def p_loop_struct(p):
+    """loop_struct : expr ';'
+                   | loop_cond_expr
+                   | loop_instruction"""
+
+######################################
+
 def p_expr_const(p):
     """expr : INTNUM
             | FLOATNUM
@@ -65,23 +78,23 @@ def p_expr_assign(p):
             | ID DIVASSIGN expr"""
 
 def p_expr_arrassign(p):
-    """expr : ID '[' INTNUM ']' '=' expr
-            | ID '[' INTNUM ']' PLUSASSIGN expr
-            | ID '[' INTNUM ']' MINASSIGN expr
-            | ID '[' INTNUM ']' MULTASSIGN expr    
-            | ID '[' INTNUM ']' DIVASSIGN expr"""
+    """expr : ID '[' expr ']' '=' expr
+            | ID '[' expr ']' PLUSASSIGN expr
+            | ID '[' expr ']' MINASSIGN expr
+            | ID '[' expr ']' MULTASSIGN expr    
+            | ID '[' expr ']' DIVASSIGN expr"""
 
 def p_expr_matassign(p):
-    """expr : ID '[' INTNUM ',' INTNUM ']' '=' expr
-            | ID '[' INTNUM ',' INTNUM ']' PLUSASSIGN expr
-            | ID '[' INTNUM ',' INTNUM ']' MINASSIGN expr
-            | ID '[' INTNUM ',' INTNUM ']' MULTASSIGN expr    
-            | ID '[' INTNUM ',' INTNUM ']' DIVASSIGN expr"""
+    """expr : ID '[' expr ',' expr ']' '=' expr
+            | ID '[' expr ',' expr ']' PLUSASSIGN expr
+            | ID '[' expr ',' expr ']' MINASSIGN expr
+            | ID '[' expr ',' expr ']' MULTASSIGN expr    
+            | ID '[' expr ',' expr ']' DIVASSIGN expr"""
 
 def p_expr_matinit_special(p):
-    """expr : ID '=' ZEROS '(' INTNUM ')'
-            | ID '=' ONES '(' INTNUM ')'
-            | ID '=' EYE '(' INTNUM ')'"""
+    """expr : ID '=' ZEROS '(' expr ')'
+            | ID '=' ONES '(' expr ')'
+            | ID '=' EYE '(' expr ')'"""
 
 #######################################
 
@@ -122,19 +135,38 @@ def p_cond_if(p):
     """cond_if : IF '(' expr ')' cond_block
                | cond_if ELSE cond_block"""
 
+#######################################
+
+def p_loop_cond_expr(p):
+    """loop_cond_expr : loop_cond_if
+                      | cond_while
+                      | cond_for"""
+
+def p_loop_cond_block(p):
+    """loop_cond_block : loop_struct
+                       | '{' loop_start '}'"""
+
+def p_loop_cond_if(p):
+    """loop_cond_if : IF '(' expr ')' loop_cond_block
+                    | loop_cond_if ELSE loop_cond_block"""
+
 def p_cond_while(p):
-    """cond_while : WHILE '(' expr ')' cond_block"""
+    """cond_while : WHILE '(' expr ')' loop_cond_block"""
 
 def p_cond_for(p):
-    """cond_for : FOR ID '=' expr ':' expr cond_block"""
+    """cond_for : FOR ID '=' expr ':' expr loop_cond_block"""
 
 #######################################
 
 def p_instruction(p):
-    """instruction : BREAK ';'
-                   | CONTINUE ';'
-                   | RETURN expr ';'
+    """instruction : RETURN expr ';'
                    | PRINT array_interior ';'"""
+
+def p_loop_instruction(p):
+    """loop_instruction : BREAK ';'
+                        | CONTINUE ';'
+                        | RETURN expr ';'
+                        | PRINT array_interior ';'"""
 
 #######################################
 
