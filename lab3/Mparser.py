@@ -8,36 +8,55 @@ tokens = scanner.tokens
 symtab = {}
 
 precedence = (
-   ('left', '=', 'PLUSASSIGN', 'MINASSIGN', 'MULTASSIGN', 'DIVASSIGN'),
-   ("left", '+', '-', 'MPLUS', 'MMINUS'),
-   ("left", '*', '/', 'MMLTP', 'MDIV'),
-   ("right", 'UMINUS'),
-   ("left", '\'')
+    ("nonassoc", 'SINGLE_IF'),
+    ("nonassoc", 'ELSE'),
+
+    ("right", '=', 'PLUSASSIGN', 'MINASSIGN', 'MULTASSIGN', 'DIVASSIGN'),
+    ("nonassoc", 'EQ', 'NEQ', '<', '>', 'GTEQ', 'LTEQ'),
+
+    ("left", '+', '-', 'MPLUS', 'MMINUS'),
+    ("left", '*', '/', 'MMLTP', 'MDIV'),
+    ("right", 'UMINUS'),
+    ("left", '\'')
 )
 
 def p_start(p):
     """start : struct
-             | start struct
-             | '{' start '}'
-             | start '{' start '}'"""
+             | start struct"""
 
 def p_struct(p):
-    """struct : expr ';'
+    """struct : single_stmt ';'
               | cond_expr
-              | instruction"""
+              | '{' block_interior '}'"""
+
+def p_block_interior(p):
+    """block_interior : block_interior expr ';'
+                      | block_interior instruction ';'
+                      | expr ';'
+                      | instruction ';'"""
+
+def p_single_statement(p):
+    """single_stmt : instruction
+                   | assignment"""
 
 ######################################
 
-def p_loop_start(p):
-    """loop_start : loop_struct
-                  | loop_start loop_struct
-                  | '{' loop_start '}'
-                  | loop_start '{' loop_start '}'"""
-
 def p_loop_struct(p):
-    """loop_struct : expr ';'
+    """loop_struct : loop_single_stmt ';'
                    | loop_cond_expr
-                   | loop_instruction"""
+                   | '{' loop_block_interior '}'"""
+
+def p_loop_block_interior(p):
+    """loop_block_interior : loop_block_interior expr ';'
+                           | loop_block_interior loop_instruction ';'
+                           | loop_block_interior loop_cond_expr
+                           | expr ';'
+                           | loop_instruction ';'
+                           | loop_cond_expr"""
+
+def p_loop_single_statement(p):
+    """loop_single_stmt : loop_instruction
+                        | assignment"""
 
 ######################################
 
@@ -46,6 +65,11 @@ def p_expr_const(p):
             | FLOATNUM
             | STRING"""
     p[0] = AST.Term(p[1])
+
+def p_expr_matfun(p):
+    """expr : ZEROS '(' expr ')'
+            | ONES '(' expr ')'
+            | EYE '(' expr ')'"""
     
 def p_expr_lvalue(p):
     """expr : lvalue"""
@@ -77,45 +101,17 @@ def p_expr_array(p):
 
 def p_lvalue(p):
     """lvalue : ID
-              | ID '[' expr ']'
-              | ID '[' expr ',' expr ']'"""
+              | ID '[' array_interior ']'"""
 
-# def p_expr_assign(p):
-#     """expr : ID '=' expr
-#             | ID PLUSASSIGN expr
-#             | ID MINASSIGN expr
-#             | ID MULTASSIGN expr
-#             | ID DIVASSIGN expr"""
-#     p[0] = AST.BinExpr(p[2], p[1], p[3])
-
-# def p_expr_arrassign(p):
-#     """expr : ID '[' expr ']' '=' expr
-#             | ID '[' expr ']' PLUSASSIGN expr
-#             | ID '[' expr ']' MINASSIGN expr
-#             | ID '[' expr ']' MULTASSIGN expr    
-#             | ID '[' expr ']' DIVASSIGN expr"""
-
-# def p_expr_matassign(p):
-#     """expr : ID '[' expr ',' expr ']' '=' expr
-#             | ID '[' expr ',' expr ']' PLUSASSIGN expr
-#             | ID '[' expr ',' expr ']' MINASSIGN expr
-#             | ID '[' expr ',' expr ']' MULTASSIGN expr    
-#             | ID '[' expr ',' expr ']' DIVASSIGN expr"""
-
-# def p_expr_matinit_special(p):
-#     """expr : ID '=' ZEROS '(' expr ')'
-#             | ID '=' ONES '(' expr ')'
-#             | ID '=' EYE '(' expr ')'"""
-
+def p_assign(p):
+    """assignment : lvalue '=' expr
+                  | lvalue PLUSASSIGN expr
+                  | lvalue MINASSIGN expr
+                  | lvalue MULTASSIGN expr
+                  | lvalue DIVASSIGN expr"""
+    
 def p_expr_assign(p):
-    """expr : lvalue '=' expr
-            | lvalue PLUSASSIGN expr
-            | lvalue MINASSIGN expr
-            | lvalue MULTASSIGN expr
-            | lvalue DIVASSIGN expr
-            | lvalue '=' ZEROS '(' expr ')'
-            | lvalue '=' ONES '(' expr ')'
-            | lvalue '=' EYE '(' expr ')'"""
+    """expr : assignment"""
 
 #######################################
 
@@ -152,12 +148,11 @@ def p_cond_expr(p):
                  | cond_for"""
 
 def p_cond_block(p):
-    """cond_block : struct
-                  | '{' start '}'"""
+    """cond_block : struct"""
 
 def p_cond_if(p):
-    """cond_if : IF '(' expr ')' cond_block
-               | cond_if ELSE cond_block"""
+    """cond_if : IF '(' expr ')' cond_block %prec SINGLE_IF
+               | IF '(' expr ')' cond_block ELSE cond_block"""
 
 #######################################
 
@@ -167,12 +162,11 @@ def p_loop_cond_expr(p):
                       | cond_for"""
 
 def p_loop_cond_block(p):
-    """loop_cond_block : loop_struct
-                       | '{' loop_start '}'"""
+    """loop_cond_block : loop_struct"""
 
 def p_loop_cond_if(p):
-    """loop_cond_if : IF '(' expr ')' loop_cond_block
-                    | loop_cond_if ELSE loop_cond_block"""
+    """loop_cond_if : IF '(' expr ')' loop_cond_block %prec SINGLE_IF
+                    | IF '(' expr ')' loop_cond_block ELSE loop_cond_block"""
 
 def p_cond_while(p):
     """cond_while : WHILE '(' expr ')' loop_cond_block"""
@@ -183,14 +177,14 @@ def p_cond_for(p):
 #######################################
 
 def p_instruction(p):
-    """instruction : RETURN expr ';'
-                   | PRINT array_interior ';'"""
+    """instruction : RETURN expr
+                   | PRINT array_interior"""
 
 def p_loop_instruction(p):
-    """loop_instruction : BREAK ';'
-                        | CONTINUE ';'
-                        | RETURN expr ';'
-                        | PRINT array_interior ';'"""
+    """loop_instruction : BREAK
+                        | CONTINUE
+                        | RETURN expr
+                        | PRINT array_interior"""
 
 #######################################
 
