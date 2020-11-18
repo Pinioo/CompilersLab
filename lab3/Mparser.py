@@ -44,7 +44,7 @@ def p_struct(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 3:
-        p[0] = FinishedStruct(p[1])
+        p[0] = Struct(p[1])
 
 def p_block_interior(p):
     """block_interior : struct
@@ -68,7 +68,7 @@ def p_loop_struct(p):
     if len(p) == 2:
         p[0] = p[1]
     elif len(p) == 3:
-        p[0] = FinishedStruct(p[1])
+        p[0] = Struct(p[1])
     
 
 def p_loop_block_interior_continues(p):
@@ -78,7 +78,7 @@ def p_loop_block_interior_continues(p):
     if p[-1] == ';':
         p[0] = Start(p[1].instructions + [p[2]])
     else:
-        p[0] = Start(p[1].instructions + [FinishedStruct(p[2])])
+        p[0] = Start(p[1].instructions + [Struct(p[2])])
     
 def p_loop_block_interior_finish(p):
     """loop_block_interior : expr ';'
@@ -87,7 +87,7 @@ def p_loop_block_interior_finish(p):
     if len(p) == 2:
         p[0] = Start([p[1]])
     elif len(p) == 3:
-        p[0] = Start([FinishedStruct(p[1])]) 
+        p[0] = Start([Struct(p[1])]) 
 
 def p_loop_single_statement(p):
     """loop_single_stmt : loop_instruction
@@ -126,25 +126,25 @@ def p_expr_group(p):
 
 def p_expr_unmin(p):
     """expr : '-' expr %prec UMINUS"""
-    p[0] = UnLeftExpr(p[1], p[2])
+    p[0] = UnOp(p[1], p[2])
 
 def p_expr_transpose(p):
     """expr : expr '\\\''"""    
-    p[0] = UnRightExpr(p[2], p[1])
+    p[0] = UnOp(p[2], p[1])
 
 #######################################
 
 def p_array_interior_unfinished(p):
     """array_interior : array_interior ',' expr"""
-    # p[0] = ArrayInterior(p[1], p[3])
-    # p[0] = Start(p[1].instructions + [p[3]])
     p[0] = ArrayInterior(p[1].values + [p[3]])
 
 def p_array_interior_finished(p):
     """array_interior : expr"""
-    # p[0] = p[1]
-    # p[0] = Start([p[1]])
     p[0] = ArrayInterior([p[1]])
+
+def p_range(p):
+    """range : expr ':' expr"""
+    p[0] = Range(p[1], p[3])
 
 def p_expr_array(p):
     """expr : '[' array_interior ']'"""
@@ -157,7 +157,8 @@ def p_lvalue_single(p):
     p[0] = Id(p[1])
 
 def p_lvalue_ref(p):
-    """lvalue : ID '[' array_interior ']'"""
+    """lvalue : ID '[' array_interior ']'
+              | ID '[' range ']'"""
     p[0] = ArrayRef(p[1], p[3])
 
 def p_assign(p):
@@ -166,7 +167,7 @@ def p_assign(p):
                   | lvalue MINASSIGN expr
                   | lvalue MULTASSIGN expr
                   | lvalue DIVASSIGN expr"""
-    p[0] = Assign(p[2], p[1], p[3])
+    p[0] = BinOp(p[2], p[1], p[3])
 
 def p_expr_assign(p):
     """expr : assignment"""
@@ -186,7 +187,7 @@ def p_expr_matop(p):
             | expr MMINUS expr
             | expr MMLTP expr
             | expr MDIV expr"""
-    p[0] = MatOp(p[2], p[1], p[3])
+    p[0] = BinOp(p[2], p[1], p[3])
 
 #######################################
 
@@ -197,7 +198,7 @@ def p_expr_logic(p):
             | expr LTEQ expr
             | expr '>' expr
             | expr '<' expr"""
-    p[0] = LogicOp(p[2], p[1], p[3])
+    p[0] = BinOp(p[2], p[1], p[3])
 
 #######################################
 
@@ -236,8 +237,8 @@ def p_cond_while(p):
     p[0] = While(p[3], p[5])
 
 def p_cond_for(p):
-    """cond_for : FOR ID '=' expr ':' expr loop_struct"""
-    p[0] = For(p[2], p[4], p[6], p[7])
+    """cond_for : FOR lvalue '=' range loop_struct"""
+    p[0] = For(p[2], p[4], p[5])
 
 #######################################
 

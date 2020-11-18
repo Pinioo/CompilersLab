@@ -14,7 +14,7 @@ class Block:
     instructions: Any
 
 @dataclass
-class FinishedStruct:
+class Struct:
     instructions: Any
 
 @dataclass
@@ -59,14 +59,9 @@ class LogicOp:
     right: Any
 
 @dataclass
-class UnLeftExpr:
+class UnOp:
     op: Any
-    right: Any
-
-@dataclass
-class UnRightExpr:
-    op: Any
-    left: Any
+    expr: Any
 
 @dataclass
 class If:
@@ -87,8 +82,7 @@ class While:
 @dataclass
 class For:
     ref: Any
-    range_from: Any
-    range_to: Any
+    range_: Any
     instructions: Any
 
 @dataclass
@@ -126,3 +120,8 @@ class ArrayInterior:
 @dataclass
 class Array:
     interior: Any
+
+@dataclass
+class Range:
+    left: Any
+    right: Any
