@@ -1,6 +1,7 @@
 import sys
 import scanner
 import Mparser
+from TreePrinter import TreePrinter
 
 if __name__ == '__main__':
     filename = sys.argv[1] if len(sys.argv) > 1 else "example1.m"
@@ -13,4 +14,5 @@ if __name__ == '__main__':
 
     parser = Mparser.parser
     text = file.read()
-    parser.parse(text, lexer=scanner.lexer)
+    ast = parser.parse(text, lexer=scanner.lexer)
+    ast.printTree()

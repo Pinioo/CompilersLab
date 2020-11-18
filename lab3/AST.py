@@ -2,7 +2,11 @@ from dataclasses import dataclass
 from typing import Any
 
 @dataclass
-class Program:
+class Root:
+    instructions: Any
+
+@dataclass
+class Start:
     instructions: Any
 
 @dataclass
@@ -10,20 +14,46 @@ class Block:
     instructions: Any
 
 @dataclass
+class FinishedStruct:
+    instructions: Any
+
+@dataclass
 class Term:
     term: Any
 
 @dataclass
+class Group:
+    value: Any
+
+@dataclass
 class Id:
-    id: Any
+    ref: Any
 
 @dataclass
 class ArrayRef:
-    id: Any
+    ref: Any
     indices: Any 
 
 @dataclass
-class BinExpr:
+class Assign:
+    op: Any
+    left: Any
+    right: Any
+
+@dataclass
+class BinOp:
+    op: Any
+    left: Any
+    right: Any
+
+@dataclass
+class MatOp:
+    op: Any
+    left: Any
+    right: Any
+
+@dataclass
+class LogicOp:
     op: Any
     left: Any
     right: Any
@@ -56,13 +86,17 @@ class While:
 
 @dataclass
 class For:
-    id: Any
+    ref: Any
     range_from: Any
     range_to: Any
     instructions: Any
 
 @dataclass
 class Return:
+    value: Any
+
+@dataclass
+class Print:
     value: Any
 
 @dataclass
@@ -74,13 +108,20 @@ class Continue:
     pass
 
 @dataclass
-class Matfun:
-    name: Any
+class Ones:
+    argument: Any
+
+@dataclass
+class Zeros:
+    argument: Any
+
+@dataclass
+class Eye:
     argument: Any
 
 @dataclass
 class ArrayInterior:
-    pass
+    values: Any
 
 @dataclass
 class Array:
