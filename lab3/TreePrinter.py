@@ -1,5 +1,7 @@
 import AST
 
+indent_representation = "|  "
+
 def addToClass(cls):
     def decorator(func):
         setattr(cls, func.__name__, func)
@@ -8,122 +10,156 @@ def addToClass(cls):
 
 class TreePrinter:
     @addToClass(AST.Root)
-    def printTree(self, indent=0):
-        self.instructions.printTree(indent)
+    def printTree(self, indent=0) -> str:
+        return self.instructions.printTree(indent)
 
     @addToClass(AST.Start)
-    def printTree(self, indent):
-        for instruction in self.instructions:
-            instruction.printTree(indent)
+    def printTree(self, indent) -> str:
+        return "".join(
+            instruction.printTree(indent) for instruction in self.instructions
+        )
 
     @addToClass(AST.Block)
-    def printTree(self, indent):
-        # print(indent * "|  " + "BLOCK")     # ???
-        # self.instructions.printTree(indent+1)
-        self.instructions.printTree(indent)
+    def printTree(self, indent) -> str:
+        return self.instructions.printTree(indent)
 
     @addToClass(AST.Struct)
-    def printTree(self, indent):
-        self.instructions.printTree(indent)
+    def printTree(self, indent) -> str:
+        return self.instructions.printTree(indent)
 
     @addToClass(AST.Term)
-    def printTree(self, indent):
-        print(indent * "|  " + str(self.term))
+    def printTree(self, indent) -> str:
+        return ( 
+            indent * indent_representation + 
+            str(self.term) + '\n'
+        )
 
     @addToClass(AST.Id)
-    def printTree(self, indent):
-        print(indent * "|  " + self.ref)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + 
+            self.ref + '\n'
+        )
 
     @addToClass(AST.ArrayRef)
-    def printTree(self, indent):
-        print(indent * "|  " + "ARRAY_REF")
-        print((indent+1) * "|  " + self.ref)
-        self.indices.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return ( 
+            indent * indent_representation + "ARRAY_REF\n" + 
+            (indent+1) * indent_representation + self.ref + '\n' 
+            + self.indices.printTree(indent+1)
+        )
 
     @addToClass(AST.BinOp)
-    def printTree(self, indent):
-        print(indent * "|  " + self.op)
-        self.left.printTree(indent+1) 
-        self.right.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + self.op + '\n' + 
+            self.left.printTree(indent+1) + 
+            self.right.printTree(indent+1)
+        )
       
     @addToClass(AST.UnOp)
-    def printTree(self, indent):
-        print(indent * "|  " + self.op)
-        self.expr.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + self.op + '\n' + 
+            self.expr.printTree(indent+1)
+        )
 
     @addToClass(AST.If)
-    def printTree(self, indent):
-        print(indent * "|  " + "IF")
-        self.condition.printTree(indent+1)
-        self.instructions.print(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "IF\n" + 
+            self.condition.printTree(indent+1) +
+            self.instructions.printTree(indent+1)
+        )
 
     @addToClass(AST.IfElse)
-    def printTree(self, indent):
-        print(indent * "|  " + "IF")
-        self.condition.printTree(indent+1)
-        self.if_instructions.printTree(indent+1)
-        print(indent * "|  " + "ELSE")
-        self.else_instructions.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "IF\n" + 
+            self.condition.printTree(indent+1) + 
+            self.if_instructions.printTree(indent+1) + 
+            indent * indent_representation + "ELSE\n" +
+            self.else_instructions.printTree(indent+1)
+        )
 
 
     @addToClass(AST.While)
-    def printTree(self, indent):
-        print(indent * "|  " + "WHILE")
-        self.condition.printTree(indent+1)
-        self.instructions.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "WHILE\n" +
+            self.condition.printTree(indent+1) +
+            self.instructions.printTree(indent+1)
+        )
 
     @addToClass(AST.For)
-    def printTree(self, indent):
-        print(indent * "|  " + "FOR")
-        self.ref.printTree(indent+1)
-        self.range_.printTree(indent+1)
-        self.instructions.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "FOR\n" + 
+            self.ref.printTree(indent+1) +
+            self.range_.printTree(indent+1) +
+            self.instructions.printTree(indent+1)
+        )
 
     @addToClass(AST.Print)
-    def printTree(self, indent):
-        print(indent * "|  " + "RETURN")
-        self.value.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "RETURN\n" +
+            self.value.printTree(indent+1)
+        )
 
     @addToClass(AST.Print)
-    def printTree(self, indent):
-        print(indent * "|  " + "PRINT")
-        self.value.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "PRINT\n" +
+            self.value.printTree(indent+1)
+        )
 
     @addToClass(AST.Break)
-    def printTree(self, indent):
-        print(indent * "|  " + "BREAK")
+    def printTree(self, indent) -> str:
+        return indent * indent_representation + "BREAK\n"
 
     @addToClass(AST.Continue)
-    def printTree(self, indent):
-        print(indent * "|  " + "CONTINUE")
+    def printTree(self, indent) -> str:
+        return indent * indent_representation + "CONTINUE\n"
 
     @addToClass(AST.Ones)
-    def printTree(self, indent):
-        print(indent * "|  " + "ONES")
-        self.argument.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "ONES\n" +
+            self.argument.printTree(indent+1)
+        )
 
     @addToClass(AST.Zeros)
-    def printTree(self, indent):
-        print(indent * "|  " + "ZEROS")
-        self.argument.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "ZEROS\n" +
+            self.argument.printTree(indent+1)
+        )
 
     @addToClass(AST.Eye)
-    def printTree(self, indent):
-        print(indent * "|  " + "EYE")
-        self.argument.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "EYE\n" +
+            self.argument.printTree(indent+1)
+        )
 
     @addToClass(AST.ArrayInterior)
-    def printTree(self, indent):
-        for instruction in self.values:
-            instruction.printTree(indent)
+    def printTree(self, indent) -> str:
+        return "".join(
+            instruction.printTree(indent) for instruction in self.values
+        )
 
     @addToClass(AST.Array)
-    def printTree(self, indent):
-        print(indent * "|  " + "ARRAY")
-        self.interior.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "ARRAY\n" +
+            self.interior.printTree(indent+1)
+        )
 
     @addToClass(AST.Range)
-    def printTree(self, indent):
-        print(indent * "|  " + "RANGE")
-        self.left.printTree(indent+1)
-        self.right.printTree(indent+1)
+    def printTree(self, indent) -> str:
+        return (
+            indent * indent_representation + "RANGE\n" +
+            self.left.printTree(indent+1) +
+            self.right.printTree(indent+1)
+        )

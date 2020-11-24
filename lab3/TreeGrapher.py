@@ -1,27 +1,46 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+from TreePrinter import indent_representation
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
-def dfs(node, G, index = 0):
-    node.index = index
-    if node.parent is not None:
-        G.add_edge(node.parent.index, index, L=node.letter)
-    index += 1
-    for v in node.children.values():
-        index = dfs(v, G, index)
-    return index
+def parse_line_to_indent_token(line: str, indent_text: str = indent_representation) -> (int, str):
+    indent = line.count(indent_text)
+    return (indent, line[indent * len(indent_text):])
 
-def draw_trie(root, filename = None):
-    plt.figure(figsize=(30,40))
+def dfs(tree_text: str) -> nx.DiGraph:
     G = nx.DiGraph()
-    dfs(root, G)
+    G.add_node(0, token='START')
+    parents = [0]
+    index = 1
+    find_my_index = lambda indent: indent+1
+    for line in tree_text.splitlines():
+        indent, token = parse_line_to_indent_token(line)
+        token_indent_index = find_my_index(indent)
+        if token_indent_index > len(parents) - 1:
+            parents += [index]
+        G.add_node(index, token=token)
+        G.add_edge(parents[token_indent_index-1], index)
+        parents[token_indent_index] = index
+        index += 1
+    return G
+
+def draw_tree_from_text(text, filename = None):
+    plt.figure(figsize=(30,40))
+    G = dfs(text)
     
     pos = graphviz_layout(G, prog='dot')
         
-    edge_labels = {(u,v): d['L'] for u,v,d in G.edges(data=True)} 
+    labels = {u: d for u,d in G.nodes(data='token')} 
     
-    nx.draw_networkx_edges(G, pos, arrows=True)   
-    nx.draw_networkx_edge_labels(G, pos, font_size=30, edge_labels=edge_labels)
+    nx.draw_networkx(
+        G, 
+        pos, 
+        arrows=True,
+        labels=labels,
+        node_size = 500,
+        node_color = "#f1f1f1",
+        font_size = 10
+    )
     
     if filename:
         plt.savefig(filename)
