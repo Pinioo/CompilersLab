@@ -1,3 +1,7 @@
+# To run draw_tree_from_text, install:
+# - graphviz package (pip install graphviz)
+# - graphviz (https://graphviz.org/) (not necessary, required to draw the graph)
+
 import sys
 import scanner
 import Mparser
@@ -16,4 +20,6 @@ if __name__ == '__main__':
     parser = Mparser.parser
     text = file.read()
     ast = parser.parse(text, lexer=scanner.lexer)
-    draw_tree_from_text(ast.printTree())
+    tree_text = ast.printTree()
+    print(tree_text)
+    # draw_tree_from_text(ast.printTree(), 'graph')
