@@ -22,10 +22,6 @@ class Term:
     term: Any
 
 @dataclass
-class Group: # delete
-    value: Any
-
-@dataclass
 class Id:
     ref: Any
 
@@ -114,12 +110,8 @@ class Eye:
     argument: Any
 
 @dataclass
-class ArrayInterior:
+class Array:
     values: Any
-
-@dataclass
-class Array: #delete
-    interior: Any
 
 @dataclass
 class Range:
