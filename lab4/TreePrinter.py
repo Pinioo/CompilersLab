@@ -11,12 +11,8 @@ def addToClass(cls):
 
 
 class TreePrinter:
-    @addToClass(AST.Root)
-    def printTree(self, indent=0) -> str:
-        return self.instructions.printTree(indent)
-
     @addToClass(AST.Start)
-    def printTree(self, indent) -> str:
+    def printTree(self, indent=0) -> str:
         return "".join(
             instruction.printTree(indent) for instruction in self.instructions
         )
@@ -51,7 +47,16 @@ class TreePrinter:
             + self.indices.printTree(indent+1)
         )
 
+    @addToClass(AST.ArrayRange)
+    def printTree(self, indent) -> str:
+        return ( 
+            indent * indent_representation + "ARRAY_RANGE\n" + 
+            (indent+1) * indent_representation + self.ref + '\n' 
+            + self.range_.printTree(indent+1)
+        )
+
     @addToClass(AST.BinOp)
+    @addToClass(AST.Assign)
     def printTree(self, indent) -> str:
         return (
             indent * indent_representation + self.op + '\n' + 
@@ -128,21 +133,24 @@ class TreePrinter:
     def printTree(self, indent) -> str:
         return (
             indent * indent_representation + "ONES\n" +
-            self.argument.printTree(indent+1)
+            self.rows.printTree(indent+1) + 
+            (self.columns.printTree(indent+1) if self.columns != self.rows else "")
         )
 
     @addToClass(AST.Zeros)
     def printTree(self, indent) -> str:
         return (
             indent * indent_representation + "ZEROS\n" +
-            self.argument.printTree(indent+1)
+            self.rows.printTree(indent+1) + 
+            (self.columns.printTree(indent+1) if self.columns != self.rows else "")
         )
 
     @addToClass(AST.Eye)
     def printTree(self, indent) -> str:
         return (
             indent * indent_representation + "EYE\n" +
-            self.argument.printTree(indent+1)
+            self.rows.printTree(indent+1) + 
+            (self.columns.printTree(indent+1) if self.columns != self.rows else "")
         )
 
     @addToClass(AST.Array)

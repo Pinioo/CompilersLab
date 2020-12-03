@@ -1,119 +1,118 @@
 from dataclasses import dataclass
 from typing import Any
 
+class Node:
+    def __init__(self):
+        self.line = 0
+
+    def accept(self, visitor):
+        return visitor.visit(self)
+
 @dataclass
-class Root:
+class Start(Node):
     instructions: Any
 
 @dataclass
-class Start:
+class Block(Node):
     instructions: Any
 
 @dataclass
-class Block:
+class Struct(Node):
     instructions: Any
 
 @dataclass
-class Struct:
-    instructions: Any
-
-@dataclass
-class Term:
+class Term(Node):
     term: Any
 
 @dataclass
-class Id:
+class Id(Node):
     ref: Any
 
 @dataclass
-class ArrayRef:
+class ArrayRef(Node):
     ref: Any
     indices: Any 
 
 @dataclass
-class Assign:
+class ArrayRange(Node):
+    ref: Any
+    range_: Any
+
+@dataclass
+class Assign(Node):
     op: Any
     left: Any
     right: Any
 
 @dataclass
-class BinOp:
+class BinOp(Node):
     op: Any
     left: Any
     right: Any
 
 @dataclass
-class MatOp:
-    op: Any
-    left: Any
-    right: Any
-
-@dataclass
-class LogicOp:
-    op: Any
-    left: Any
-    right: Any
-
-@dataclass
-class UnOp:
+class UnOp(Node):
     op: Any
     expr: Any
 
 @dataclass
-class If:
+class If(Node):
     condition: Any
     instructions: Any
 
 @dataclass
-class IfElse:
+class IfElse(Node):
     condition: Any
     if_instructions: Any
     else_instructions: Any
 
 @dataclass
-class While:
+class While(Node):
     condition: Any
     instructions: Any
 
 @dataclass
-class For:
+class For(Node):
     ref: Any
     range_: Any
     instructions: Any
 
 @dataclass
-class Return:
+class Return(Node):
     value: Any
 
 @dataclass
-class Print:
+class Print(Node):
     value: Any
 
 @dataclass
-class Break:
+class Break(Node):
     pass
 
 @dataclass
-class Continue:
+class Continue(Node):
     pass
 
 @dataclass
-class Ones:
-    argument: Any
+class Ones(Node):
+    rows: Any
+    columns: Any
 
 @dataclass
-class Zeros:
-    argument: Any
+class Zeros(Node):
+    rows: Any
+    columns: Any
 
 @dataclass
-class Eye:
-    argument: Any
+class Eye(Node):
+    rows: Any
+    columns: Any
 
 @dataclass
-class Array:
+class Array(Node):
     values: Any
 
 @dataclass
-class Range:
+class Range(Node):
     left: Any
     right: Any

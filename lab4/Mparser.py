@@ -19,10 +19,6 @@ precedence = (
     ("right", 'UMINUS'),
     ("left", '\'')
 )
-
-def p_root(p):
-    """root : start"""
-    p[0] = Root(p[1])
     
 def p_start(p):
     """start : struct
@@ -104,15 +100,27 @@ def p_expr_const(p):
 
 def p_expr_matfun_zeros(p):
     """expr : ZEROS '(' expr ')'"""
-    p[0] = Zeros(p[3])
+    """expr : ZEROS '(' expr, expr ')'"""
+    if len(p) == 5:
+        p[0] = Zeros(p[3], p[3])
+    else:
+        p[0] = Zeros(p[3], p[4])
     
 def p_expr_matfun_ones(p):
     """expr : ONES '(' expr ')'"""
-    p[0] = Ones(p[3])
+    """expr : ONES '(' expr, expr ')'"""
+    if len(p) == 5:
+        p[0] = Ones(p[3], p[3])
+    else:
+        p[0] = Ones(p[3], p[4])
 
 def p_expr_matfun_eye(p):
     """expr : EYE '(' expr ')'"""
-    p[0] = Eye(p[3])
+    """expr : EYE '(' expr, expr ')'"""
+    if len(p) == 5:
+        p[0] = Eye(p[3], p[3])
+    else:
+        p[0] = Eye(p[3], p[4])
     
 def p_expr_lvalue(p):
     """expr : lvalue"""
@@ -156,10 +164,13 @@ def p_lvalue_single(p):
     """lvalue : ID"""
     p[0] = Id(p[1])
 
-def p_lvalue_ref(p):
-    """lvalue : ID '[' array_interior ']'
-              | ID '[' range ']'"""
+def p_lvalue_ref_indices(p):
+    """lvalue : ID '[' array_interior ']'"""
     p[0] = ArrayRef(p[1], p[3])
+
+def p_lvalue_ref_range(p):
+    """lvalue : ID '[' range ']'"""
+    p[0] = ArrayRange(p[1], p[3])
 
 def p_assign(p):
     """assignment : lvalue '=' expr
@@ -167,7 +178,7 @@ def p_assign(p):
                   | lvalue MINASSIGN expr
                   | lvalue MULTASSIGN expr
                   | lvalue DIVASSIGN expr"""
-    p[0] = BinOp(p[2], p[1], p[3])
+    p[0] = Assign(p[2], p[1], p[3])
 
 def p_expr_assign(p):
     """expr : assignment"""
