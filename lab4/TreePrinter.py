@@ -17,15 +17,9 @@ class TreePrinter:
             instruction.printTree(indent) for instruction in self.instructions
         )
 
-    @addToClass(AST.Block)
-    def printTree(self, indent) -> str:
-        return self.instructions.printTree(indent)
-
-    @addToClass(AST.Struct)
-    def printTree(self, indent) -> str:
-        return self.instructions.printTree(indent)
-
-    @addToClass(AST.Term)
+    @addToClass(AST.Intnum)
+    @addToClass(AST.Floatnum)
+    @addToClass(AST.String)
     def printTree(self, indent) -> str:
         return ( 
             indent * indent_representation + 
@@ -107,7 +101,7 @@ class TreePrinter:
             self.instructions.printTree(indent+1)
         )
 
-    @addToClass(AST.Print)
+    @addToClass(AST.Return)
     def printTree(self, indent) -> str:
         return (
             indent * indent_representation + "RETURN\n" +

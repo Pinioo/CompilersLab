@@ -1,10 +1,11 @@
 # control flow instruction
 
+k = 0;
 N = 10;
 M = 20;
 N[1:40];
-for i = 1:N {
-    for j = i:M {
+for i = 1:10 {
+    for j = i:50 {
         print i, j;
     }
 }

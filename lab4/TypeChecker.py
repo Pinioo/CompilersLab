@@ -2,14 +2,14 @@ from collections import defaultdict
 import functools
 
 from AST import *
-from SymbolTable import SymbolTable
+from SymbolTable import *
 
-INTNUM = 'INTNUM'
-FLOATNUM = 'FLOATNUM'
-STRING = 'STRING'
-ARRAY = 'ARRAY'
-MATRIX = 'MATRIX'
-RANGE = 'RANGE'
+INTNUM = "INTNUM"
+FLOATNUM = "FLOATNUM"
+STRING = "STRING"
+ARRAY = "ARRAY"
+MATRIX = "MATRIX"
+RANGE = "RANGE"
 
 ttype = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))
 
@@ -48,85 +48,78 @@ utype['-'][FLOATNUM] = FLOATNUM
 utype['\''][MATRIX] = MATRIX
 
 class NodeVisitor(object):
-
     def visit(self, node):
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, None)
         return visitor(node)
 
 
-    # def generic_visit(self, node):        # Called if no explicit visitor function exists for a node.
-    #     if isinstance(node, list):
-    #         for elem in node:
-    #             self.visit(elem)
-    #     else:
-    #         for child in node.children:
-    #             if isinstance(child, list):
-    #                 for item in child:
-    #                     if isinstance(item, AST.Node):
-    #                         self.visit(item)
-    #             elif isinstance(child, AST.Node):
-    #                 self.visit(child)
-
-    # simpler version of generic_visit, not so general
-    #def generic_visit(self, node):
-    #    for child in node.children:
-    #        self.visit(child)
-
-
-
 class TypeChecker(NodeVisitor):
-
     def __init__(self):
-        self.symbol_table = SymbolTable(None, 'global')
+        self.symbol_table = SymbolTable(None, "global")
+        self.error_counter = 0
+
+    def print_err(self, node, message):
+        print(f"[line {node.line}]: {message}")
+        self.error_counter += 1
 
     def visit_Start(self, node):
         for instruction in node.instructions:
             self.visit(instruction)
 
-    def visit_Block(self, node):
-        for instruction in node.instructions: # symbol_table
-            self.visit(instruction)
-
-    def visit_Struct(self, node):
-        for instruction in node.instructions:
-            self.visit(instruction)
-
-    def visit_Term(self, node):
-        return node.term.type
+    def visit_Intnum(self, node):
+        return INTNUM
+        
+    def visit_Floatnum(self, node):
+        return FLOATNUM
+        
+    def visit_String(self, node):
+        return STRING
 
     def visit_Id(self, node):
-        return self.symbol_table.get(node.ref)
+        id_symbol = self.symbol_table.get(node.ref)
+        if id_symbol is None:
+            self.print_err(node, f"{node.ref} is undefined")
+            return None
+        else:
+            return self.symbol_table.get(node.ref).type
 
     def visit_ArrayRef(self, node):
         arr = self.symbol_table.get(node.ref)
-        ind_types = [self.visit(i) for i in node.indices.values]
-        if not all([t == INTNUM for t in ind_types]):
-            print("Index not INTNUM")
         if arr.type == ARRAY:
-            if len(ind_types) != 1:
-                print("Too many indexes for ARRAY")
-            if isinstance(node.indices.values[0], Term): #TODO
-                arr_len = len(arr.value)
-                if node.indices.values[0].term >= arr_len or node.indices.values[0].term < 0:
-                    print('Index out of range')
-                return self.visit(arr.value[node.indices.values[0]])
+            if len(node.indices.values) != 1:
+                self.print_err(node, "Too many indexes for ARRAY")
+                return None
+            index_node = node.indices.values[0]
+            if self.visit(index_node) == INTNUM:
+                index = index_node.term
+                arr_len = len(arr.value.values)
+                if index >= arr_len or index < 0:
+                    self.print_err(node, "Index out of range")
+                return self.visit(arr.value.values[index])
             else:
+                self.print_err(node, "Index must be INTNUM")
                 return None
 
         elif arr.type == MATRIX:
-            row_i = node.indices.values[0].term
-            col_j = node.indices.values[1].term
-            if len(ind_types) != 2:
-                print("Invalid indexes number for MATRIX")    
-            if isinstance(node.indices.values[0], Term): #TODO
+            if len(node.indices.values) != 2:
+                self.print_err(node, "Invalid indexes number for MATRIX")    
+                return None
+            
+            index1_node = node.indices.values[0]
+            index2_node = node.indices.values[1]
+            if self.visit(index1_node) == INTNUM and self.visit(index2_node) == INTNUM:
+                row_i = index1_node.term
+                col_j = index2_node.term
                 mat_rows = len(arr.value.values)
                 mat_columns = len(arr.value.values[0].values)
                 if row_i >= mat_rows or row_i < 0:
-                    print('Index out of range')
+                    self.print_err(node, "Index out of range")
                 if col_j >= mat_columns or col_j < 0:
-                    print('Index out of range')
-                return self.visit(arr.value[node.indices.values[0]])
+                    self.print_err(node, "Index out of range")
+                return self.visit(arr.value.values[row_i].values[col_j])
+            else:
+                self.print_err(node, "Indexes must be INTNUM")
             
         else:
             return None
@@ -134,22 +127,82 @@ class TypeChecker(NodeVisitor):
     def visit_ArrayRange(self, node):
         arr = self.symbol_table.get(node.ref)
         if arr.type == ARRAY:
-            if isInstance(node.left, Term) and node.left < 0:
-                print('Index out of range')
-                if isInstance(node.left, Term) and node.right >= len(arr.value.values):
-                    print('Index out of range')
+            if isinstance(node.left, Intnum) and node.left < 0:
+                self.print_err(node, f"Index out of range")
+                if isinstance(node.left, Intnum) and node.right >= len(arr.value.values):
+                    self.print_err(node, f"Index out of range")
                     return self.visit(Array(arr.value.values[node.left : node.right]))
             return None
         else:
-            print('Range can be used only with ARRAY')
+            self.print_err(node, f"Range can be used only with ARRAY")
+
+    
+    def visit_Assign(self, node):
+        r_type = self.visit(node.right)
+        if r_type is None:
+            return None
+        if isinstance(node.left, Id):
+            if node.op == "=":
+                self.symbol_table.put(
+                    node.left.ref, 
+                    VariableSymbol(node.left.ref, r_type, node.right)    
+                )
+                return r_type
+            else:
+                l_symbol = self.symbol_table.get(node.left.ref)
+                if l_symbol is None:
+                    self.print_err(node, f"{node.left.ref} is undefined")
+                    return None
+                l_type = l_symbol.type
+                final_type = ttype[node.op][l_type][r_type]
+                if final_type is None:
+                    self.print_err(node, f"Incompatible types")
+                l_symbol.type = final_type
+                return final_type
+            return None
+            
+        elif isinstance(node.left, ArrayRef):
+            l_symbol = self.symbol_table.get(node.left.ref)
+            if l_symbol is None:
+                self.print_err(node, f"{node.left.ref} is undefined")
+                return None
+            l_type = l_symbol.type
+            if l_type == ARRAY:
+                arr = l_symbol.value
+                index = node.indices.values[0].term
+                if node.op == "=":
+                    arr.values[index] = node.right
+                    return r_type
+                else:
+                    final_type = ttype[node.op][self.visit(arr.values[index])][r_type]
+                    if final_type is None:
+                        self.print_err(node, f"Incompatible types")
+                    return final_type
+
+            if l_type == MATRIX:
+                mat = l_symbol.value
+                row_i = node.indices.values[0].term
+                col_j = node.indices.values[1].term
+                if node.op == "=":
+                    mat.values[row_i].values[col_j] = node.right
+                    return r_type
+                else:
+                    final_type = ttype[node.op][self.visit(mat.values[row_i].values[col_j])][r_type]
+                    if final_type is None:
+                        self.print_err(node, f"Incompatible types")
+                    return final_type
+
+
+        elif isinstance(node.left, ArrayRange):
+            pass
 
     def visit_BinOp(self, node):
-        type1 = self.visit(node.left)     # type1 = node.left.accept(self) 
-        type2 = self.visit(node.right)    # type2 = node.right.accept(self)
+        type1 = self.visit(node.left)
+        type2 = self.visit(node.right)
         op    = node.op
         result = ttype[op][type1][type2]
         if result is None:
-            print(f'{type1} {op} {type2} is invalid operation')
+            self.print_err(node, f"{type1} {op} {type2} is invalid operation")
         return result
 
     def visit_Variable(self, node):
@@ -158,39 +211,45 @@ class TypeChecker(NodeVisitor):
     def visit_UnOp(self, node):
         result = utype[node.op][self.visit(node.expr)]
         if result is None:
-            print(f'{type1} {op} is invalid operation')
+            self.print_err(node, f"{type1} {op} is invalid operation")
         return result
 
     def visit_If(self, node):
         result = self.visit(node.condition)
         if result != INTNUM:
-            print(f'If condition is invalid')
+            self.print_err(node, f"If condition is invalid")
+        self.visit(node.instructions)
         return result
 
     def visit_IfElse(self, node):
         result = self.visit(node.condition)
         if result != INTNUM:
-            print(f'IfElse condition is invalid')
-        return result
+            self.print_err(node, f"IfElse condition is invalid")
+        self.visit(node.if_instructions)
+        self.visit(node.else_instructions)
     
     def visit_While(self, node):
         result = self.visit(node.condition)
         if result != INTNUM:
-            print(f'While condition is invalid')
-        return result
+            self.print_err(node, f"While condition is invalid")
+        self.visit(node.instructions)
     
     def visit_For(self, node):
         type_range = self.visit(node.range_)
         if type_range != RANGE:
-            return None
+            self.print_err(node, f"For range is invalid")
+        else:
+            self.symbol_table.put(
+                node.ref.ref,
+                VariableSymbol(node.ref.ref, INTNUM)
+            )
+        self.visit(node.instructions)
 
     def visit_Return(self, node):
-        type1 = self.visit(node.value)
-        return None
+        self.visit(node.value)
 
     def visit_Print(self, node):
-        type1 = self.visit(node.value)
-        return None
+        self.visit(node.value)
 
     def visit_Break(self, node):
         pass
@@ -202,10 +261,10 @@ class TypeChecker(NodeVisitor):
         type1 = self.visit(node.rows)
         type2 = self.visit(node.columns) if node.rows != node.columns else type1
         if type1 != INTNUM or type2 != INTNUM:
-            print(f'Zeros({type1}, {type2}); arguments must be INTNUM')
+            self.print_err(node, f"Zeros({type1}, {type2}); arguments must be INTNUM")
             return None
         elif node.rows.term <= 0 or node.columns.term <= 0:
-            print(f'Zeros({type1}, {type2}); arguments must be positive')
+            self.print_err(node, f"Zeros({type1}, {type2}); arguments must be positive")
             return None
         else:
             return MATRIX
@@ -214,10 +273,10 @@ class TypeChecker(NodeVisitor):
         type1 = self.visit(node.rows)
         type2 = self.visit(node.columns) if node.rows != node.columns else type1
         if type1 != INTNUM or type2 != INTNUM:
-            print(f'Ones({type1}, {type2}); arguments must be INTNUM')
+            self.print_err(node, f"Ones({type1}, {type2}); arguments must be INTNUM")
             return None
         elif node.rows.term <= 0 or node.columns.term <= 0:
-            print(f'Ones({type1}, {type2}); arguments must be positive')
+            self.print_err(node, f"Ones({type1}, {type2}); arguments must be positive")
             return None
         else:
             return MATRIX
@@ -226,10 +285,10 @@ class TypeChecker(NodeVisitor):
         type1 = self.visit(node.rows)
         type2 = self.visit(node.columns) if node.rows != node.columns else type1
         if type1 != INTNUM or type2 != INTNUM:
-            print(f'Eye({type1}, {type2}); arguments must be INTNUM')
+            self.print_err(node, f"Eye({type1}, {type2}); arguments must be INTNUM")
             return None
         elif node.rows.term <= 0 or node.columns.term <= 0:
-            print(f'Eye({type1}, {type2}); arguments must be positive')
+            self.print_err(node, f"Eye({type1}, {type2}); arguments must be positive")
             return None
         else:
             return MATRIX
@@ -242,14 +301,14 @@ class TypeChecker(NodeVisitor):
             # Possible Matrix
             if all([x == ARRAY for x in val_types]):
                 # Matrix
-                length = len(val_types)
+                length = len(node.values[0].values)
                 if length == 0 or any([len(x.values) != length for x in node.values]):
-                    print('Cannot create matrix with non rectangluar shape')
+                    self.print_err(node, "Cannot create matrix with non rectangluar shape")
                     return None
                     
                 return MATRIX
             else:
-                print("")
+                self.print_err(node, f"")
         else:
             # Array
             return ARRAY
@@ -258,7 +317,7 @@ class TypeChecker(NodeVisitor):
         type1 = self.visit(node.left)
         type2 = self.visit(node.right)
         if type1 != INTNUM or type2 != INTNUM:
-            print(f'{type1}:{type2} is invalid range')
+            self.print_err(node, f"{type1}:{type2} is invalid range")
             return None
         else:
             return RANGE

@@ -5,23 +5,21 @@ class Node:
     def __init__(self):
         self.line = 0
 
-    def accept(self, visitor):
-        return visitor.visit(self)
 
 @dataclass
 class Start(Node):
     instructions: Any
 
 @dataclass
-class Block(Node):
-    instructions: Any
-
+class Intnum(Node):
+    term: Any
+    
 @dataclass
-class Struct(Node):
-    instructions: Any
-
+class Floatnum(Node):
+    term: Any
+    
 @dataclass
-class Term(Node):
+class String(Node):
     term: Any
 
 @dataclass
