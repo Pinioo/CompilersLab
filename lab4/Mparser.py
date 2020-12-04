@@ -42,55 +42,21 @@ def p_struct(p):
     p[0] = p[1]
     p[0].line = p.lineno(0)
 
+def p_for_struct(p):
+    """for_struct : assignment ';'
+                  | instruction ';'
+                  | cond_expr
+                  | block"""
+    p[0] = p[1]
+    p[0].line = p.lineno(0)
+
 def p_block_interior(p):
     """block_interior : struct
                       | block_interior struct"""
     if len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 3:
-        p[0] = Start(p[1].instructions + [p[2]])
-    p[0].line = p.lineno(0)
-    
-
-######################################
-
-def p_loop_block(p):
-    """loop_block : '{' loop_block_interior '}'"""
-    p[0] = p[2]
-    p[0].line = p.lineno(0)
-
-def p_loop_struct(p):
-    """loop_struct : loop_single_stmt ';'
-                   | loop_cond_expr
-                   | loop_block"""
-    p[0] = p[1]
-    p[0].line = p.lineno(0)
-    
-
-def p_loop_block_interior_continues(p):
-    """loop_block_interior : loop_block_interior expr ';'
-                           | loop_block_interior loop_instruction ';'
-                           | loop_block_interior loop_cond_expr"""
-    if p[-1] == ';':
-        p[0] = Start(p[1].instructions + [p[2]])
-    else:
-        p[0] = Start(p[1].instructions + [p[2]])
-    p[0].line = p.lineno(0)
-    
-def p_loop_block_interior_finish(p):
-    """loop_block_interior : expr ';'
-                           | loop_instruction ';'
-                           | loop_cond_expr"""
-    if len(p) == 2:
         p[0] = Start([p[1]])
     elif len(p) == 3:
-        p[0] = Start([p[1]]) 
-    p[0].line = p.lineno(0)
-
-def p_loop_single_statement(p):
-    """loop_single_stmt : loop_instruction
-                        | assignment"""
-    p[0] = p[1]
+        p[0] = Start(p[1].instructions + [p[2]])
     p[0].line = p.lineno(0)
 
 ######################################
@@ -111,30 +77,30 @@ def p_expr_string(p):
     p[0].line = p.lineno(0)
 
 def p_expr_matfun_zeros(p):
-    """expr : ZEROS '(' expr ')'"""
-    """expr : ZEROS '(' expr ',' expr ')'"""
+    """expr : ZEROS '(' expr ')'
+            | ZEROS '(' expr ',' expr ')'"""
     if len(p) == 5:
         p[0] = Zeros(p[3], p[3])
     else:
-        p[0] = Zeros(p[3], p[4])
+        p[0] = Zeros(p[3], p[5])
     p[0].line = p.lineno(0)
-    
+
 def p_expr_matfun_ones(p):
-    """expr : ONES '(' expr ')'"""
-    """expr : ONES '(' expr ',' expr ')'"""
+    """expr : ONES '(' expr ')'
+            | ONES '(' expr ',' expr ')'"""
     if len(p) == 5:
         p[0] = Ones(p[3], p[3])
     else:
-        p[0] = Ones(p[3], p[4])
+        p[0] = Ones(p[3], p[5])
     p[0].line = p.lineno(0)
 
 def p_expr_matfun_eye(p):
-    """expr : EYE '(' expr ')'"""
-    """expr : EYE '(' expr ',' expr ')'"""
+    """expr : EYE '(' expr ')'
+            | EYE '(' expr ',' expr ')'"""
     if len(p) == 5:
         p[0] = Eye(p[3], p[3])
     else:
-        p[0] = Eye(p[3], p[4])
+        p[0] = Eye(p[3], p[5])
     p[0].line = p.lineno(0)
     
 def p_expr_lvalue(p):
@@ -179,6 +145,11 @@ def p_range(p):
 def p_expr_array(p):
     """expr : '[' array_interior ']'"""
     p[0] = p[2]
+    p[0].line = p.lineno(0)
+
+def p_expr_empty_array(p):
+    """expr : '[' ']'"""
+    p[0] = Array([])
     p[0].line = p.lineno(0)
 
 #######################################
@@ -263,30 +234,13 @@ def p_cond_if_else(p):
 
 #######################################
 
-def p_loop_cond_expr(p):
-    """loop_cond_expr : loop_cond_if
-                      | cond_while
-                      | cond_for"""
-    p[0] = p[1]
-    p[0].line = p.lineno(0)
-
-def p_loop_cond_if(p):
-    """loop_cond_if : IF '(' expr ')' loop_struct %prec SINGLE_IF"""
-    p[0] = If(p[3], p[5])
-    p[0].line = p.lineno(0)
-
-def p_loop_cond_if_else(p):
-    """loop_cond_if : IF '(' expr ')' loop_struct ELSE loop_struct"""
-    p[0] = IfElse(p[3], p[5], p[7])
-    p[0].line = p.lineno(0)
-
 def p_cond_while(p):
-    """cond_while : WHILE '(' expr ')' loop_struct"""
+    """cond_while : WHILE '(' expr ')' struct"""
     p[0] = While(p[3], p[5])
     p[0].line = p.lineno(0)
 
 def p_cond_for(p):
-    """cond_for : FOR lvalue '=' range loop_struct"""
+    """cond_for : FOR lvalue '=' range for_struct"""
     p[0] = For(p[2], p[4], p[5])
     p[0].line = p.lineno(0)
 
@@ -302,19 +256,14 @@ def p_instruction_print(p):
     p[0] = Print(p[2])
     p[0].line = p.lineno(0)
 
-def p_loop_instruction_break(p):
-    """loop_instruction : BREAK"""
+def p_instruction_break(p):
+    """instruction : BREAK"""
     p[0] = Break()
     p[0].line = p.lineno(0)
 
-def p_loop_instruction_continue(p):
-    """loop_instruction : CONTINUE"""
+def p_instruction_continue(p):
+    """instruction : CONTINUE"""
     p[0] = Continue()
-    p[0].line = p.lineno(0)
-
-def p_loop_instruction(p):
-    """loop_instruction : instruction"""
-    p[0] = p[1]
     p[0].line = p.lineno(0)
 
 #######################################

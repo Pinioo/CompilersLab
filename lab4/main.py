@@ -23,7 +23,7 @@ if __name__ == '__main__':
     text = file.read()
     ast = parser.parse(text, lexer=scanner.lexer, tracking=True)
     
-    tree_text = ast.printTree()
+    # tree_text = ast.printTree()
     # print(tree_text)
     # draw_tree_from_text(tree_text, 'graph')
 
@@ -31,5 +31,7 @@ if __name__ == '__main__':
     tc.visit(ast)
     if tc.error_counter == 0:
         print("No errors found")
+    elif tc.error_counter == 1:
+        print("! 1 error found")
     else:
         print(f"! {tc.error_counter} errors found")

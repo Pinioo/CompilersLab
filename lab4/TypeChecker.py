@@ -11,6 +11,7 @@ ARRAY = "ARRAY"
 MATRIX = "MATRIX"
 RANGE = "RANGE"
 
+# Binary operations types
 ttype = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))
 
 ttype['+'][INTNUM][INTNUM] = INTNUM
@@ -38,6 +39,7 @@ ttype['=='][MATRIX][MATRIX] = INTNUM
 
 ttype['!='] = ttype['<'] = ttype['>'] = ttype['<='] = ttype['>='] = ttype['==']
 
+# Unary operations types
 utype = defaultdict(lambda: defaultdict(lambda: None))
 
 utype['-'][ARRAY] = ARRAY
@@ -46,6 +48,7 @@ utype['-'][INTNUM] = INTNUM
 utype['-'][FLOATNUM] = FLOATNUM
 
 utype['\''][MATRIX] = MATRIX
+
 
 class NodeVisitor(object):
     def visit(self, node):
@@ -56,16 +59,27 @@ class NodeVisitor(object):
 
 class TypeChecker(NodeVisitor):
     def __init__(self):
-        self.symbol_table = SymbolTable(None, "global")
+        self.symbol_table = SymbolTable(None, "outside_loop")
         self.error_counter = 0
+        self.create_child_scopes = True
 
     def print_err(self, node, message):
         print(f"[line {node.line}]: {message}")
         self.error_counter += 1
 
     def visit_Start(self, node):
+        if self.create_child_scopes:
+            self.symbol_table = self.symbol_table.create_child_scope(self.symbol_table.name)
+            created_child_scope = True
+        else:
+            self.create_child_scopes = True
+            created_child_scope = False
+
         for instruction in node.instructions:
             self.visit(instruction)
+
+        if created_child_scope:
+            self.symbol_table = self.symbol_table.parent
 
     def visit_Intnum(self, node):
         return INTNUM
@@ -92,10 +106,12 @@ class TypeChecker(NodeVisitor):
                 return None
             index_node = node.indices.values[0]
             if self.visit(index_node) == INTNUM:
+                # if isinstance(node.range_.left, Intnum)
                 index = index_node.term
                 arr_len = len(arr.value.values)
                 if index >= arr_len or index < 0:
                     self.print_err(node, "Index out of range")
+                    return None
                 return self.visit(arr.value.values[index])
             else:
                 self.print_err(node, "Index must be INTNUM")
@@ -124,17 +140,24 @@ class TypeChecker(NodeVisitor):
         else:
             return None
 
+    # WRONG
     def visit_ArrayRange(self, node):
         arr = self.symbol_table.get(node.ref)
+        print(arr.value)
         if arr.type == ARRAY:
-            if isinstance(node.left, Intnum) and node.left < 0:
+            if isinstance(node.range_.left, Intnum) and node.range_.left.term > len(arr.value.values):
                 self.print_err(node, f"Index out of range")
-                if isinstance(node.left, Intnum) and node.right >= len(arr.value.values):
-                    self.print_err(node, f"Index out of range")
-                    return self.visit(Array(arr.value.values[node.left : node.right]))
-            return None
+                return None
+            elif isinstance(node.range_.right, Intnum) and node.range_.right.term >= len(arr.value.values):
+                self.print_err(node, f"Index out of range")
+                return None
+            elif isinstance(node.range_.left, Intnum) and isinstance(node.range_.right, Intnum):
+                return self.visit(Array(arr.value.values[node.range_.left.term : node.range_.right.term]))
+            else:
+                return Array("Undefined list") #TODO
         else:
             self.print_err(node, f"Range can be used only with ARRAY")
+            return None
 
     
     def visit_Assign(self, node):
@@ -192,7 +215,6 @@ class TypeChecker(NodeVisitor):
                         self.print_err(node, f"Incompatible types")
                     return final_type
 
-
         elif isinstance(node.left, ArrayRange):
             pass
 
@@ -232,7 +254,13 @@ class TypeChecker(NodeVisitor):
         result = self.visit(node.condition)
         if result != INTNUM:
             self.print_err(node, f"While condition is invalid")
+        self.symbol_table = self.symbol_table.create_child_scope('inside_loop')
+        self.create_child_scopes = False
+
         self.visit(node.instructions)
+
+        self.create_child_scopes = True
+        self.symbol_table = self.symbol_table.parent
     
     def visit_For(self, node):
         type_range = self.visit(node.range_)
@@ -243,8 +271,14 @@ class TypeChecker(NodeVisitor):
                 node.ref.ref,
                 VariableSymbol(node.ref.ref, INTNUM)
             )
+        self.symbol_table = self.symbol_table.create_child_scope('inside_loop')
+        self.create_child_scopes = False
+
         self.visit(node.instructions)
 
+        self.create_child_scopes = True
+        self.symbol_table = self.symbol_table.parent
+        
     def visit_Return(self, node):
         self.visit(node.value)
 
@@ -252,10 +286,12 @@ class TypeChecker(NodeVisitor):
         self.visit(node.value)
 
     def visit_Break(self, node):
-        pass
+        if self.symbol_table.name != 'inside_loop':
+            self.print_err(node, 'BREAK outside loop')
     
     def visit_Continue(self, node):
-        pass
+        if self.symbol_table.name != 'inside_loop':
+            self.print_err(node, 'CONTINUE outside loop')
     
     def visit_Zeros(self, node):
         type1 = self.visit(node.rows)
@@ -295,9 +331,12 @@ class TypeChecker(NodeVisitor):
             
     def visit_Array(self, node):
         val_types = [self.visit(nd) for nd in node.values]
-        if None in val_types or MATRIX in val_types:
+        if None in val_types:
             return None
-        if ARRAY in val_types:
+        elif MATRIX in val_types:
+            self.print_err(node, 'MATRIX cannot be inside ARRAY or MATRIX')
+            return None
+        elif ARRAY in val_types:
             # Possible Matrix
             if all([x == ARRAY for x in val_types]):
                 # Matrix
@@ -308,7 +347,7 @@ class TypeChecker(NodeVisitor):
                     
                 return MATRIX
             else:
-                self.print_err(node, f"")
+                self.print_err(node, f"ARRAY cannot be inside ARRAY that is not MATRIX")
         else:
             # Array
             return ARRAY
