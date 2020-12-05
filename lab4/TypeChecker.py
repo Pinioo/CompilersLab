@@ -143,7 +143,6 @@ class TypeChecker(NodeVisitor):
     # WRONG
     def visit_ArrayRange(self, node):
         arr = self.symbol_table.get(node.ref)
-        print(arr.value)
         if arr.type == ARRAY:
             if isinstance(node.range_.left, Intnum) and node.range_.left.term > len(arr.value.values):
                 self.print_err(node, f"Index out of range")
@@ -154,7 +153,8 @@ class TypeChecker(NodeVisitor):
             elif isinstance(node.range_.left, Intnum) and isinstance(node.range_.right, Intnum):
                 return self.visit(Array(arr.value.values[node.range_.left.term : node.range_.right.term]))
             else:
-                return Array("Undefined list") #TODO
+                # return Array("Undefined list") #TODO
+                return self.print_err(node, "Ranged array can only use const range (for now)") 
         else:
             self.print_err(node, f"Range can be used only with ARRAY")
             return None
@@ -166,9 +166,34 @@ class TypeChecker(NodeVisitor):
             return None
         if isinstance(node.left, Id):
             if node.op == "=":
+                to_put = node.right
+                if isinstance(node.right, Eye):
+                    rows = node.right.rows.term
+                    cols = node.right.columns.term
+                    to_put = Array(
+                        [Array(
+                            [Intnum(1 if i == j else 0) for j in range(cols)]
+                        ) for i in range(rows)]
+                    )
+                elif isinstance(node.right, Ones):
+                    rows = node.right.rows.term
+                    cols = node.right.columns.term
+                    to_put = Array(
+                        [Array(
+                            [Intnum(1)] * cols
+                        ) for _ in range(rows)]
+                    )
+                elif isinstance(node.right, Zeros):
+                    rows = node.right.rows.term
+                    cols = node.right.columns.term
+                    to_put = Array(
+                        [Array(
+                            [Intnum(0)] * cols
+                        ) for _ in range(rows)]
+                    )
                 self.symbol_table.put(
                     node.left.ref, 
-                    VariableSymbol(node.left.ref, r_type, node.right)    
+                    VariableSymbol(node.left.ref, r_type, to_put)    
                 )
                 return r_type
             else:
@@ -193,6 +218,9 @@ class TypeChecker(NodeVisitor):
             if l_type == ARRAY:
                 arr = l_symbol.value
                 index = node.indices.values[0].term
+                if index < 0 or index >= len(arr.values):
+                    self.print_err(node, "Index out of range")
+                    return None
                 if node.op == "=":
                     arr.values[index] = node.right
                     return r_type
@@ -206,6 +234,9 @@ class TypeChecker(NodeVisitor):
                 mat = l_symbol.value
                 row_i = node.indices.values[0].term
                 col_j = node.indices.values[1].term
+                if row_i < 0 or row_i >= len(mat.values) or col_j < 0 or col_j >= len(mat.values[0].values):
+                    self.print_err(node, "Index out of range")
+                    return None
                 if node.op == "=":
                     mat.values[row_i].values[col_j] = node.right
                     return r_type
@@ -225,6 +256,47 @@ class TypeChecker(NodeVisitor):
         result = ttype[op][type1][type2]
         if result is None:
             self.print_err(node, f"{type1} {op} {type2} is invalid operation")
+        elif result == ARRAY:
+            dims = []
+            for arr_repr in [node.left, node.right]:
+                if isinstance(arr_repr, Array):
+                    arr = arr_repr
+                elif isinstance(arr_repr, ArrayRange):
+                    arr_full = self.symbol_table.get(arr_repr.ref).value
+                    arr = Array(arr_full.values[arr_repr.range_.left:arr_repr.range_.right])
+                elif isinstance(arr_repr, Id):
+                    arr = self.symbol_table.get(arr_repr.ref)
+                else:
+                    self.print_err(node, "Arrays in BinOp must be Array, ArrayRange or Id")
+                    return None
+                dims.append(len(arr.values))
+
+            if dims[0] != dims[1]:
+                self.print_err(node, f"Dimensions {dims[0]} and {dims[1]} are incompatible")
+                return None
+
+        elif result == MATRIX:
+            row_dims = []
+            col_dims = []
+            for mat_repr in [node.left, node.right]:
+                if isinstance(mat_repr, Array):
+                    mat = mat_repr
+                elif isinstance(mat_repr, Id):
+                    mat = self.symbol_table.get(mat_repr.ref).value
+                else:
+                    self.print_err(node, "Matrices in BinOp must be Matrix or Id")
+                    return None
+                row_dims.append(len(mat.values))
+                col_dims.append(len(mat.values[0].values))
+
+            if row_dims[0] != row_dims[1]:
+                self.print_err(node, f"Dimensions {row_dims[0]} and {row_dims[1]} are incompatible")
+                return None
+                
+            if col_dims[0] != col_dims[1]:
+                self.print_err(node, f"Dimensions {col_dims[0]} and {col_dims[1]} are incompatible")
+                return None
+        
         return result
 
     def visit_Variable(self, node):
