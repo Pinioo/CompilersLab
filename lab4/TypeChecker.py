@@ -10,32 +10,57 @@ STRING = "STRING"
 ARRAY = "ARRAY"
 MATRIX = "MATRIX"
 RANGE = "RANGE"
+UNKNOWN_TERM = "UNKNOWN_TERM"
+UNKNOWN_ARRAY = "UNKNOWN_ARRAY"
 
 # Binary operations types
 ttype = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))
 
 ttype['+'][INTNUM][INTNUM] = INTNUM
 ttype['+'][INTNUM][FLOATNUM] = FLOATNUM
+ttype['+'][INTNUM][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['+'][FLOATNUM][INTNUM] = FLOATNUM
 ttype['+'][FLOATNUM][FLOATNUM] = FLOATNUM
+ttype['+'][FLOATNUM][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['+'][STRING][STRING] = STRING
+ttype['+'][STRING][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['+'][ARRAY][ARRAY] = ARRAY
+ttype['+'][ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
+ttype['+'][UNKNOWN_TERM][INTNUM] = UNKNOWN_TERM
+ttype['+'][UNKNOWN_TERM][FLOATNUM] = UNKNOWN_TERM
+ttype['+'][UNKNOWN_TERM][STRING] = UNKNOWN_TERM
+ttype['+'][UNKNOWN_TERM][UNKNOWN_TERM] = UNKNOWN_TERM
+ttype['+'][UNKNOWN_ARRAY][ARRAY] = UNKNOWN_ARRAY
+ttype['+'][UNKNOWN_ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
 
 ttype['-'] = ttype['*'] = ttype['/'] = ttype['+']
 ttype['+='] = ttype['-='] = ttype['*='] = ttype['/='] = ttype['+']
 
 ttype['.+'][ARRAY][ARRAY] = ARRAY
+ttype['.+'][ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
+ttype['.+'][UNKNOWN_ARRAY][ARRAY] = UNKNOWN_ARRAY
+ttype['.+'][UNKNOWN_ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
 ttype['.+'][MATRIX][MATRIX] = MATRIX
 
 ttype['.-'] = ttype['.*'] = ttype['./'] = ttype['.+']
 
 ttype['=='][INTNUM][INTNUM] = INTNUM
 ttype['=='][INTNUM][FLOATNUM] = INTNUM
+ttype['=='][INTNUM][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['=='][FLOATNUM][INTNUM] = INTNUM
 ttype['=='][FLOATNUM][FLOATNUM] = INTNUM
+ttype['=='][FLOATNUM][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['=='][STRING][STRING] = INTNUM
+ttype['=='][STRING][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['=='][ARRAY][ARRAY] = INTNUM
+ttype['=='][ARRAY][UNKNOWN_ARRAY] = INTNUM
 ttype['=='][MATRIX][MATRIX] = INTNUM
+ttype['=='][UNKNOWN_TERM][INTNUM] = INTNUM
+ttype['=='][UNKNOWN_TERM][FLOATNUM] = INTNUM
+ttype['=='][UNKNOWN_TERM][STRING] = INTNUM
+ttype['=='][UNKNOWN_TERM][UNKNOWN_TERM] = INTNUM
+ttype['=='][UNKNOWN_ARRAY][ARRAY] = INTNUM
+ttype['=='][UNKNOWN_ARRAY][UNKNOWN_ARRAY] = INTNUM
 
 ttype['!='] = ttype['<'] = ttype['>'] = ttype['<='] = ttype['>='] = ttype['==']
 
@@ -46,6 +71,7 @@ utype['-'][ARRAY] = ARRAY
 utype['-'][MATRIX] = MATRIX
 utype['-'][INTNUM] = INTNUM
 utype['-'][FLOATNUM] = FLOATNUM
+utype['-'][UNKNOWN_TERM] = UNKNOWN_TERM
 
 utype['\''][MATRIX] = MATRIX
 
@@ -100,13 +126,23 @@ class TypeChecker(NodeVisitor):
 
     def visit_ArrayRef(self, node):
         arr = self.symbol_table.get(node.ref)
-        if arr.type == ARRAY:
+
+        if len(node.indices.values) > 2:
+            self.print_err(node, "More than 2 indexes")       
+            return None
+        elif arr is None:
+            self.print_err(node, f"{node.ref} is undefined")
+            return None
+        elif arr.type == ARRAY or arr.type == UNKNOWN_ARRAY:
             if len(node.indices.values) != 1:
                 self.print_err(node, "Too many indexes for ARRAY")
                 return None
             index_node = node.indices.values[0]
-            if self.visit(index_node) == INTNUM:
-                # if isinstance(node.range_.left, Intnum)
+            if self.visit(index_node) not in [INTNUM, UNKNOWN_TERM]:
+                self.print_err(node, "Index must be INTNUM")
+                return None
+
+            if isinstance(index_node, Intnum) and not arr.type == UNKNOWN_ARRAY and not isinstance(arr.value, ArrayRange):
                 index = index_node.term
                 arr_len = len(arr.value.values)
                 if index >= arr_len or index < 0:
@@ -114,52 +150,72 @@ class TypeChecker(NodeVisitor):
                     return None
                 return self.visit(arr.value.values[index])
             else:
-                self.print_err(node, "Index must be INTNUM")
-                return None
+                return UNKNOWN_TERM
 
         elif arr.type == MATRIX:
-            if len(node.indices.values) != 2:
-                self.print_err(node, "Invalid indexes number for MATRIX")    
+            if len(node.indices.values) < 2:
+                self.print_err(node, "Not enough indexes for MATRIX")    
+                return None
+            elif len(node.indices.values) > 2:
+                self.print_err(node, "Too many indexes for MATRIX")    
                 return None
             
             index1_node = node.indices.values[0]
             index2_node = node.indices.values[1]
-            if self.visit(index1_node) == INTNUM and self.visit(index2_node) == INTNUM:
+            if (self.visit(index1_node) not in [INTNUM, UNKNOWN_TERM] 
+                    or self.visit(index2_node) not in [INTNUM, UNKNOWN_TERM]):
+                self.print_err(node, "Index must be INTNUM")
+                return None
+
+            if isinstance(index1_node, Intnum):
                 row_i = index1_node.term
-                col_j = index2_node.term
                 mat_rows = len(arr.value.values)
-                mat_columns = len(arr.value.values[0].values)
                 if row_i >= mat_rows or row_i < 0:
-                    self.print_err(node, "Index out of range")
+                    self.print_err(node, "First index out of range")
+                    return None
+
+            if isinstance(index2_node, Intnum):
+                col_j = index2_node.term
+                mat_columns = len(arr.value.values[0].values)
                 if col_j >= mat_columns or col_j < 0:
-                    self.print_err(node, "Index out of range")
+                    self.print_err(node, "Second index out of range")
+                    return None
+            
+            if isinstance(index1_node, Intnum) and isinstance(index2_node, Intnum): 
                 return self.visit(arr.value.values[row_i].values[col_j])
             else:
-                self.print_err(node, "Indexes must be INTNUM")
-            
+                return UNKNOWN_TERM
+
         else:
+            self.print_err(node, f"Indexes list can be used only for ARRAY and MATRIX")
             return None
 
-    # WRONG
     def visit_ArrayRange(self, node):
         arr = self.symbol_table.get(node.ref)
         if arr.type == ARRAY:
-            if isinstance(node.range_.left, Intnum) and node.range_.left.term > len(arr.value.values):
+            if (self.visit(node.range_.left) not in [INTNUM, UNKNOWN_TERM] 
+                    or self.visit(node.range_.right) not in [INTNUM, UNKNOWN_TERM]):
+                self.print_err(node, "Range left and right must be INTNUM")
+                return None
+
+            if isinstance(arr.value, ArrayRange):
+                return UNKNOWN_ARRAY
+            if isinstance(node.range_.left, Intnum) and node.range_.left.term >= len(arr.value.values):
                 self.print_err(node, f"Index out of range")
                 return None
-            elif isinstance(node.range_.right, Intnum) and node.range_.right.term >= len(arr.value.values):
+            elif isinstance(node.range_.right, Intnum) and node.range_.right.term > len(arr.value.values):
                 self.print_err(node, f"Index out of range")
                 return None
             elif isinstance(node.range_.left, Intnum) and isinstance(node.range_.right, Intnum):
                 return self.visit(Array(arr.value.values[node.range_.left.term : node.range_.right.term]))
             else:
-                # return Array("Undefined list") #TODO
-                return self.print_err(node, "Ranged array can only use const range (for now)") 
+                return UNKNOWN_ARRAY
+        elif arr.type == UNKNOWN_ARRAY:
+            return UNKNOWN_ARRAY
         else:
             self.print_err(node, f"Range can be used only with ARRAY")
             return None
 
-    
     def visit_Assign(self, node):
         r_type = self.visit(node.right)
         if r_type is None:
@@ -296,7 +352,7 @@ class TypeChecker(NodeVisitor):
             if col_dims[0] != col_dims[1]:
                 self.print_err(node, f"Dimensions {col_dims[0]} and {col_dims[1]} are incompatible")
                 return None
-        
+
         return result
 
     def visit_Variable(self, node):
@@ -416,7 +472,7 @@ class TypeChecker(NodeVisitor):
                 if length == 0 or any([len(x.values) != length for x in node.values]):
                     self.print_err(node, "Cannot create matrix with non rectangluar shape")
                     return None
-                    
+
                 return MATRIX
             else:
                 self.print_err(node, f"ARRAY cannot be inside ARRAY that is not MATRIX")
