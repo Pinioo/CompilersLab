@@ -272,8 +272,12 @@ class TypeChecker(NodeVisitor):
                 return None
             l_type = l_symbol.type
             if l_type == ARRAY:
+                if len(node.left.indices.values) != 1:
+                    self.print_err(node, "Wrong indexes number for ARRAY")
+                    return None
+                    
                 arr = l_symbol.value
-                index = node.indices.values[0].term
+                index = node.left.indices.values[0].term
                 if index < 0 or index >= len(arr.values):
                     self.print_err(node, "Index out of range")
                     return None
@@ -287,9 +291,13 @@ class TypeChecker(NodeVisitor):
                     return final_type
 
             if l_type == MATRIX:
+                if len(node.left.indices.values) != 2:
+                    self.print_err(node, "Wrong indexes number for MATRIX")
+                    return None
+
                 mat = l_symbol.value
-                row_i = node.indices.values[0].term
-                col_j = node.indices.values[1].term
+                row_i = node.left.indices.values[0].term
+                col_j = node.left.indices.values[1].term
                 if row_i < 0 or row_i >= len(mat.values) or col_j < 0 or col_j >= len(mat.values[0].values):
                     self.print_err(node, "Index out of range")
                     return None
@@ -302,8 +310,9 @@ class TypeChecker(NodeVisitor):
                         self.print_err(node, f"Incompatible types")
                     return final_type
 
-        elif isinstance(node.left, ArrayRange):
-            pass
+        else:
+            self.print_err(node, "Wrong lvalue type")
+            return None
 
     def visit_BinOp(self, node):
         type1 = self.visit(node.left)
