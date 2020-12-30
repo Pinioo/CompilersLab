@@ -40,6 +40,7 @@ literals = r"+-/*=<>()[]{}:',;"
 
 def t_FLOATNUM(t):
     r'( (0 | ([1-9]\d*) )\.\d*) | (\.\d+)'
+    t.value = float(t.value)
     return t
 
 def t_INTNUM(t):
@@ -54,6 +55,7 @@ def t_ID(t):
 
 def t_STRING(t):
     r'"([^"\\] | (\\.))*"'
+    t.value = t.value[1:-1]
     return t
 
 t_ignore = ' \t'

@@ -4,7 +4,9 @@ from typing import Any
 class Node:
     def __init__(self):
         self.line = 0
-
+    
+    def accept(self, visitor):
+        return visitor.visit(self)
 
 @dataclass
 class Start(Node):

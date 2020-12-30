@@ -32,6 +32,9 @@ ttype['+'][UNKNOWN_TERM][UNKNOWN_TERM] = UNKNOWN_TERM
 ttype['-'] = ttype['*'] = ttype['/'] = ttype['+']
 ttype['+='] = ttype['-='] = ttype['*='] = ttype['/='] = ttype['+']
 
+ttype['*'][STRING][INTNUM] = STRING
+ttype['*'][INTNUM][STRING] = STRING
+
 ttype['.+'][ARRAY][ARRAY] = ARRAY
 ttype['.+'][ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
 ttype['.+'][UNKNOWN_ARRAY][ARRAY] = UNKNOWN_ARRAY

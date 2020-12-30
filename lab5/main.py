@@ -34,7 +34,7 @@ if __name__ == '__main__':
     if type_checker.error_counter == 1:
         print("! 1 error found")
     elif type_checker.error_counter > 1:
-        print(f"! {tc.error_counter} errors found")
+        print(f"! {type_checker.error_counter} errors found")
     else:
         interpreter = Interpreter()
         interpreter.visit(ast)
