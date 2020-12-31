@@ -55,9 +55,13 @@ class Interpreter(object):
 
     @when(BinOp)
     def visit(self, node):
-        r1 = node.left.accept(self)
-        r2 = node.right.accept(self)
-        return opdict[node.op](r1, r2)
+        try:
+            r1 = node.left.accept(self)
+            r2 = node.right.accept(self)
+            return opdict[node.op](r1, r2)
+        except ZeroDivisionError:
+            print("Error: division by zero")
+            exit()
 
     @when(Start)
     def visit(self, node: Start):
