@@ -421,6 +421,11 @@ class TypeChecker(NodeVisitor):
     def visit_Print(self, node):
         self.visit(node.value)
 
+    def visit_PrintArray(self, node):
+        for nd in node.values:
+            self.visit(nd)
+        return ARRAY
+
     def visit_Break(self, node):
         if self.symbol_table.name != 'inside_loop':
             self.print_err(node, 'BREAK outside loop')

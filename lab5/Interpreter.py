@@ -200,6 +200,10 @@ class Interpreter(object):
     def visit(self, node: Print):
         print(", ".join([str(val) for val in node.value.accept(self)]))
 
+    @when(PrintArray)
+    def visit(self, node: Array):
+        return [val.accept(self) for val in node.values]
+
     @when(Break)
     def visit(self, node):
         raise BreakException()

@@ -253,7 +253,7 @@ def p_instruction_return(p):
 
 def p_instruction_print(p):
     """instruction : PRINT array_interior"""
-    p[0] = Print(p[2])
+    p[0] = Print(PrintArray(p[2].values))
     p[0].line = p.lineno(0)
 
 def p_instruction_break(p):

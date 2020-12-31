@@ -152,6 +152,14 @@ class TreePrinter:
         return ( 
             indent * indent_representation + "ARRAY\n" + 
             "".join(
+                instruction.printTree(indent + 1) for instruction in self.values
+            )
+        )
+
+    @addToClass(AST.PrintArray)
+    def printTree(self, indent) -> str:
+        return ( 
+            "".join(
                 instruction.printTree(indent) for instruction in self.values
             )
         )

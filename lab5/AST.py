@@ -86,6 +86,10 @@ class Print(Node):
     value: Any
 
 @dataclass
+class PrintArray(Node):
+    values: Any
+
+@dataclass
 class Break(Node):
     pass
 
