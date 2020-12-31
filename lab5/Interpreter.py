@@ -94,10 +94,10 @@ class Interpreter(object):
     @when(ArrayRef)
     def visit(self, node):
         arr = self.memory_stack.get(node.ref)
-        if len(node.indices) == 1:
-            return arr[node.indices[0].accept(self)]
+        if len(node.indices.values) == 1:
+            return arr[node.indices.values[0].accept(self)]
         else:
-            return arr[node.indices[0].accept(self)][node.indices[1].accept(self)]
+            return arr[node.indices.values[0].accept(self)][node.indices.values[1].accept(self)]
 
     @when(ArrayRange)
     def visit(self, node):
@@ -120,10 +120,10 @@ class Interpreter(object):
             self.memory_stack.set(node.left.ref, to_set_val)
         elif isinstance(node.left, ArrayRef):
             arr = self.memory_stack.get(node.left.ref)
-            if len(node.left.indices) == 1:
-                arr[node.left.indices[0].accept(self)] = to_set_val
+            if len(node.left.indices.values) == 1:
+                arr[node.left.indices.values[0].accept(self)] = to_set_val
             else:
-                arr[node.left.indices[0].accept(self)][node.left.indices[1].accept(self)] = to_set_val
+                arr[node.left.indices.values[0].accept(self)][node.left.indices.values[1].accept(self)] = to_set_val
     
     @when(UnOp)
     def visit(self, node):
