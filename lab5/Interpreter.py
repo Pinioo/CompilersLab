@@ -60,7 +60,7 @@ class Interpreter(object):
             r2 = node.right.accept(self)
             return opdict[node.op](r1, r2)
         except ZeroDivisionError:
-            print("Error: division by zero")
+            print(f"[line {node.line}] Error: division by zero")
             exit()
 
     @when(Start)
@@ -74,6 +74,8 @@ class Interpreter(object):
                 print(f"Program returned with {val}")
             else:
                 raise ReturnValueException(val)
+        except IndexError as err:
+            print(err)
 
     @when(Intnum)
     def visit(self, node):
@@ -94,10 +96,13 @@ class Interpreter(object):
     @when(ArrayRef)
     def visit(self, node):
         arr = self.memory_stack.get(node.ref)
-        if len(node.indices.values) == 1:
-            return arr[node.indices.values[0].accept(self)]
-        else:
-            return arr[node.indices.values[0].accept(self)][node.indices.values[1].accept(self)]
+        try:
+            if len(node.indices.values) == 1:
+                return arr[node.indices.values[0].accept(self)]
+            else:
+                return arr[node.indices.values[0].accept(self)][node.indices.values[1].accept(self)]
+        except IndexError:
+            raise IndexError(f"[line {node.line}] Error: index out of range")
 
     @when(ArrayRange)
     def visit(self, node):
@@ -120,11 +125,15 @@ class Interpreter(object):
             self.memory_stack.set(node.left.ref, to_set_val)
         elif isinstance(node.left, ArrayRef):
             arr = self.memory_stack.get(node.left.ref)
-            if len(node.left.indices.values) == 1:
-                arr[node.left.indices.values[0].accept(self)] = to_set_val
-            else:
-                arr[node.left.indices.values[0].accept(self)][node.left.indices.values[1].accept(self)] = to_set_val
-    
+            try:
+                if len(node.left.indices.values) == 1:
+                    idx = node.left.indices.values[0].accept(self)
+                    arr[node.left.indices.values[0].accept(self)] = to_set_val
+                else:
+                    arr[node.left.indices.values[0].accept(self)][node.left.indices.values[1].accept(self)] = to_set_val
+            except IndexError:
+                raise IndexError(f"[line {node.line}] Error: index out of range")
+
     @when(UnOp)
     def visit(self, node):
         return unopdict[node.op](node.expr.accept(self))
