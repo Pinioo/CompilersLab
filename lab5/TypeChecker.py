@@ -269,6 +269,10 @@ class TypeChecker(NodeVisitor):
                     self.print_err(node, "Wrong indexes number for ARRAY")
                     return None
                     
+                if self.visit(node.left.indices.values[0]) != INTNUM:
+                    self.print_err(node, "Index must be an integer")
+                    return None
+
                 arr = l_symbol.value
                 index = node.left.indices.values[0].term
                 if index < 0 or index >= len(arr.values):
@@ -286,6 +290,11 @@ class TypeChecker(NodeVisitor):
             if l_type == MATRIX:
                 if len(node.left.indices.values) != 2:
                     self.print_err(node, "Wrong indexes number for MATRIX")
+                    return None
+
+                if (self.visit(node.left.indices.values[0]) != INTNUM or 
+                        self.visit(node.left.indices.values[1]) != INTNUM):
+                    self.print_err(node, "Index must be INTNUM")
                     return None
 
                 mat = l_symbol.value
