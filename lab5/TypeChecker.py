@@ -273,6 +273,9 @@ class TypeChecker(NodeVisitor):
                     self.print_err(node, "Index must be an integer")
                     return None
 
+                if not isinstance(node.left.indices.values[0], Intnum):
+                    return UNKNOWN_TERM
+
                 arr = l_symbol.value
                 index = node.left.indices.values[0].term
                 if index < 0 or index >= len(arr.values):
@@ -298,11 +301,27 @@ class TypeChecker(NodeVisitor):
                     return None
 
                 mat = l_symbol.value
-                row_i = node.left.indices.values[0].term
-                col_j = node.left.indices.values[1].term
-                if row_i < 0 or row_i >= len(mat.values) or col_j < 0 or col_j >= len(mat.values[0].values):
-                    self.print_err(node, "Index out of range")
-                    return None
+
+                return_unknown = False
+                if not isinstance(node.left.indices.values[0], Intnum):
+                    return_unknown = True
+                else:
+                    row_i = node.left.indices.values[0].term
+                    if row_i < 0 or row_i >= len(mat.values):
+                        self.print_err(node, "Index out of range")
+                        return None
+
+                if not isinstance(node.left.indices.values[1], Intnum):
+                    return_unknown = True
+                else:
+                    col_j = node.left.indices.values[1].term
+                    if col_j < 0 or col_j >= len(mat.values[0].values):
+                        self.print_err(node, "Index out of range")
+                        return None
+
+                if return_unknown:
+                    return UNKNOWN_TERM
+
                 if node.op == "=":
                     mat.values[row_i].values[col_j] = node.right
                     return r_type
