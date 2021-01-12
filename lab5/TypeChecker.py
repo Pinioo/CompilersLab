@@ -84,27 +84,21 @@ class NodeVisitor(object):
 
 class TypeChecker(NodeVisitor):
     def __init__(self):
-        self.symbol_table = SymbolTable(None, "outside_loop")
+        self.symbol_table = SymbolTable(None)
         self.error_counter = 0
-        self.create_child_scopes = True
+        self.scope = "outside_loop"
 
     def print_err(self, node, message):
         print(f"[line {node.line}]: {message}")
         self.error_counter += 1
 
     def visit_Start(self, node):
-        if self.create_child_scopes:
-            self.symbol_table = self.symbol_table.create_child_scope(self.symbol_table.name)
-            created_child_scope = True
-        else:
-            self.create_child_scopes = True
-            created_child_scope = False
+        self.symbol_table = self.symbol_table.create_child_scope()
 
         for instruction in node.instructions:
             self.visit(instruction)
 
-        if created_child_scope:
-            self.symbol_table = self.symbol_table.parent
+        self.symbol_table = self.symbol_table.parent
 
     def visit_Intnum(self, node):
         return INTNUM
@@ -390,13 +384,11 @@ class TypeChecker(NodeVisitor):
         result = self.visit(node.condition)
         if result != INTNUM:
             self.print_err(node, f"While condition is invalid")
-        self.symbol_table = self.symbol_table.create_child_scope('inside_loop')
-        self.create_child_scopes = False
 
+        previous_scope = self.scope
+        self.scope = "inside_loop"
         self.visit(node.instructions)
-
-        self.create_child_scopes = True
-        self.symbol_table = self.symbol_table.parent
+        self.scope = previous_scope
     
     def visit_For(self, node):
         type_range = self.visit(node.range_)
@@ -407,13 +399,11 @@ class TypeChecker(NodeVisitor):
                 node.ref.ref,
                 VariableSymbol(node.ref.ref, INTNUM)
             )
-        self.symbol_table = self.symbol_table.create_child_scope('inside_loop')
-        self.create_child_scopes = False
 
+        previous_scope = self.scope
+        self.scope = "inside_loop"
         self.visit(node.instructions)
-
-        self.create_child_scopes = True
-        self.symbol_table = self.symbol_table.parent
+        self.scope = previous_scope
         
     def visit_Return(self, node):
         self.visit(node.value)
@@ -427,11 +417,11 @@ class TypeChecker(NodeVisitor):
         return ARRAY
 
     def visit_Break(self, node):
-        if self.symbol_table.name != 'inside_loop':
+        if self.scope == 'outside_loop':
             self.print_err(node, 'BREAK outside loop')
     
     def visit_Continue(self, node):
-        if self.symbol_table.name != 'inside_loop':
+        if self.scope == 'outside_loop':
             self.print_err(node, 'CONTINUE outside loop')
     
     def visit_Zeros(self, node):

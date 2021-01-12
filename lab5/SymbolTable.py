@@ -5,10 +5,9 @@ class VariableSymbol():
         self.value = value
 
 class SymbolTable(object):
-    def __init__(self, parent, name): # parent scope and symbol table name
+    def __init__(self, parent): # parent scope
         self.symbols = {}
         self.parent = parent
-        self.name = name
 
     def put(self, name, symbol): # put variable symbol or fundef under <name> entry
         self.symbols[name] = symbol
@@ -21,5 +20,5 @@ class SymbolTable(object):
         else:
             return None
 
-    def create_child_scope(self, name):
-        return SymbolTable(self, name)
+    def create_child_scope(self):
+        return SymbolTable(self)
