@@ -45,21 +45,21 @@ ttype['.-'] = ttype['.*'] = ttype['./'] = ttype['.+']
 
 ttype['=='][INTNUM][INTNUM] = INTNUM
 ttype['=='][INTNUM][FLOATNUM] = INTNUM
-ttype['=='][INTNUM][UNKNOWN_TERM] = UNKNOWN_TERM
+ttype['=='][INTNUM][UNKNOWN_TERM] = INTNUM
 ttype['=='][FLOATNUM][INTNUM] = INTNUM
 ttype['=='][FLOATNUM][FLOATNUM] = INTNUM
-ttype['=='][FLOATNUM][UNKNOWN_TERM] = UNKNOWN_TERM
+ttype['=='][FLOATNUM][UNKNOWN_TERM] = INTNUM
 ttype['=='][STRING][STRING] = INTNUM
-ttype['=='][STRING][UNKNOWN_TERM] = UNKNOWN_TERM
+ttype['=='][STRING][UNKNOWN_TERM] = INTNUM
 ttype['=='][ARRAY][ARRAY] = INTNUM
 ttype['=='][ARRAY][UNKNOWN_ARRAY] = INTNUM
 ttype['=='][MATRIX][MATRIX] = INTNUM
-ttype['=='][UNKNOWN_TERM][INTNUM] = UNKNOWN_TERM
-ttype['=='][UNKNOWN_TERM][FLOATNUM] = UNKNOWN_TERM
-ttype['=='][UNKNOWN_TERM][STRING] = UNKNOWN_TERM
-ttype['=='][UNKNOWN_TERM][UNKNOWN_TERM] = UNKNOWN_TERM
-ttype['=='][UNKNOWN_ARRAY][ARRAY] = UNKNOWN_ARRAY
-ttype['=='][UNKNOWN_ARRAY][UNKNOWN_ARRAY] = UNKNOWN_ARRAY
+ttype['=='][UNKNOWN_TERM][INTNUM] = INTNUM
+ttype['=='][UNKNOWN_TERM][FLOATNUM] = INTNUM
+ttype['=='][UNKNOWN_TERM][STRING] = INTNUM
+ttype['=='][UNKNOWN_TERM][UNKNOWN_TERM] = INTNUM
+ttype['=='][UNKNOWN_ARRAY][ARRAY] = INTNUM
+ttype['=='][UNKNOWN_ARRAY][UNKNOWN_ARRAY] = INTNUM
 
 ttype['!='] = ttype['<'] = ttype['>'] = ttype['<='] = ttype['>='] = ttype['==']
 
